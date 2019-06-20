@@ -1,0 +1,64 @@
+create or replace PACKAGE orm_count IS
+
+
+    TYPE count_data IS RECORD(
+        hobby_name orm_hobby.hobby_name%TYPE,
+        user_count INTEGER
+    );
+
+
+    TYPE cdata IS TABLE OF count_data;
+
+    FUNCTION GetCountData (hobby_name orm_hobby.hobby_name%TYPE)
+        RETURN cdata
+        PIPELINED;
+
+END orm_count;
+
+
+create or replace PACKAGE BODY orm_count IS
+
+
+    FUNCTION GetCountData (hobby_name orm_hobby.hobby_name%TYPE)
+        RETURN cdata
+        PIPELINED
+    IS
+
+        TYPE count_cursor_type IS REF CURSOR;
+        count_cursor  count_cursor_type;
+
+        cursor_data count_data;
+        query_str varchar2(1000);
+
+    begin
+
+        query_str :=' select count(distinct orm_hobby.hobby_name),orm_user.user_name
+                        from ORM_USER_HOBBY inner join ORM_USER
+                        on ORM_USER_HOBBY.USER_EMAIL = ORM_USER.USER_EMAIL
+                        inner join ORM_HOBBY
+                        on ORM_USER_HOBBY.HOBBY_NAME = ORM_HOBBY.HOBBY_NAME ';
+
+        -- optional part where
+            if hobby_name is not null then
+             query_str:= query_str||' where trim(orm_hobby.hobby_name) = trim('''||hobby_name||''') ';
+            end if;
+        -- end optional part
+
+        query_str := query_str||' GROUP BY orm_user.user_name';
+
+
+
+        OPEN count_cursor FOR query_str;
+        LOOP
+            FETCH count_cursor into cursor_data;
+            exit when (count_cursor %NOTFOUND);
+
+            PIPE ROW (cursor_data);
+
+        END LOOP;
+
+
+    END GetCountData;
+
+END orm_count;
+

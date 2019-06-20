@@ -1,0 +1,5 @@
+username = 'yar'
+password = 'yar'
+host = 'localhost'
+port='1521'
+service = 'xe'
